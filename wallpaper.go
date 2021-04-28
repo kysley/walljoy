@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/getlantern/systray"
-	"github.com/getlantern/systray/example/icon"
 	"github.com/reujab/wallpaper"
 	"github.com/robfig/cron/v3"
 )
@@ -19,14 +19,13 @@ func main() {
 }
 
 func onReady() {
-	systray.SetIcon(icon.Data)
+	systray.SetIcon(getIcon("smile_light.ico"))
 	systray.SetTitle("It can't be this easy")
 
-	mReroll := systray.AddMenuItem("Retry", "I don't blame you")
+	mReroll := systray.AddMenuItem("Shuffle Wallpaper", "Gets a new random wallpaper from Unsplash")
 
 	systray.AddSeparator()
-	mQuit := systray.AddMenuItem("Quit", "Goodbye forever")
-	mQuit.SetIcon(icon.Data)
+	mQuit := systray.AddMenuItem("Quit Walljoy", "Goodbye")
 
 	c = cron.New()
 
@@ -36,14 +35,14 @@ func onReady() {
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 			case <-mReroll.ClickedCh:
-				SetWallpaper()
+				setWallpaper()
 			}
 		}
 	}()
 
-	// c.AddFunc("@midnight", SetWallpaper)
+	c.AddFunc("@midnight", setWallpaper)
 
-	SetWallpaper()
+	setWallpaper()
 }
 
 func onExit() {
@@ -51,7 +50,7 @@ func onExit() {
 	c.Stop()
 }
 
-func SetWallpaper() {
+func setWallpaper() {
 	res, err := http.Get("https://source.unsplash.com/random/1920x1080")
 
 	if err != nil {
@@ -61,4 +60,12 @@ func SetWallpaper() {
 	wallpaper.SetFromURL(res.Request.URL.String())
 
 	fmt.Println("setwallpaper finished")
+}
+
+func getIcon(s string) []byte {
+	b, err := ioutil.ReadFile(s)
+	if err != nil {
+		fmt.Print(err)
+	}
+	return b
 }
