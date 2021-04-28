@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"runtime"
 
 	"github.com/getlantern/systray"
 	"github.com/reujab/wallpaper"
@@ -19,7 +19,11 @@ func main() {
 }
 
 func onReady() {
-	systray.SetIcon(getIcon("smile_light.ico"))
+	if runtime.GOOS == "windows" {
+		watchWindows()
+	} else if runtime.GOOS == "darwin" {
+		watchOSX()
+	}
 	systray.SetTitle("It can't be this easy")
 
 	mReroll := systray.AddMenuItem("Shuffle Wallpaper", "Gets a new random wallpaper from Unsplash")
@@ -60,12 +64,4 @@ func setWallpaper() {
 	wallpaper.SetFromURL(res.Request.URL.String())
 
 	fmt.Println("setwallpaper finished")
-}
-
-func getIcon(s string) []byte {
-	b, err := ioutil.ReadFile(s)
-	if err != nil {
-		fmt.Print(err)
-	}
-	return b
 }
