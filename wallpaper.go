@@ -19,11 +19,15 @@ func main() {
 }
 
 func onReady() {
-	if runtime.GOOS == "windows" {
-		watchWindows()
-	} else if runtime.GOOS == "darwin" {
-		watchOSX()
-	}
+	go func() {
+		if runtime.GOOS == "windows" {
+			watchWindows()
+		} else if runtime.GOOS == "darwin" {
+			watchOSX()
+		}
+	}()
+
+	systray.SetIcon(getIcon("smile_light.ico"))
 	systray.SetTitle("It can't be this easy")
 
 	mReroll := systray.AddMenuItem("Shuffle Wallpaper", "Gets a new random wallpaper from Unsplash")
@@ -44,9 +48,10 @@ func onReady() {
 		}
 	}()
 
-	c.AddFunc("@midnight", setWallpaper)
-
 	setWallpaper()
+
+	c.AddFunc("@midnight", setWallpaper)
+	c.Start()
 }
 
 func onExit() {
