@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -16,9 +17,14 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
+type Kv struct {
+	Value int
+}
+
 var (
-	c      *cron.Cron
-	client = resty.New()
+	c        *cron.Cron
+	client   = resty.New()
+	store, _ = Open("./walljoy.db")
 )
 
 func main() {
@@ -57,9 +63,9 @@ func getSessionId() {
 
 	fmt.Print("hello")
 
-	sessionId := sessionData.SessionId
+	// sessionId := sessionData.SessionId
 
-	openBrowser("http://localhost:8080/register?sId=" + sessionId)
+	// openBrowser("http://localhost:8080/register?sId=" + sessionId)
 }
 
 func onReady() {
@@ -74,7 +80,12 @@ func onReady() {
 	systray.SetIcon(getIcon("smile_light.ico"))
 	systray.SetTitle("Walljoy")
 
-	mReroll := systray.AddMenuItem("Shuffle Wallpaper", "Gets a new random wallpaper from Unsplash")
+	// mReroll := systray.AddMenuItem("Shuffle Wallpaper", "Gets a new random wallpaper from Unsplash")
+	systray.AddMenuItem("Current: ", "").Disable()
+	systray.AddSeparator()
+	mChan1 := systray.AddMenuItem("Earth", "")
+	mChan2 := systray.AddMenuItem("Structure", "")
+	mChan3 := systray.AddMenuItem("Random", "")
 
 	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("Quit Walljoy", "Goodbye")
@@ -86,14 +97,27 @@ func onReady() {
 			select {
 			case <-mQuit.ClickedCh:
 				systray.Quit()
-			case <-mReroll.ClickedCh:
-				setWallpaper()
+			case <-mChan3.ClickedCh:
+				onCollectionChange(3)
+			case <-mChan2.ClickedCh:
+				onCollectionChange(2)
+			case <-mChan1.ClickedCh:
+				onCollectionChange(1)
 			}
 		}
 	}()
 
-	setWallpaper()
 	getSessionId()
+
+	err := store.Get("collectionId", Kv{})
+
+	if err != nil {
+		collectionId := Kv{1}
+		store.Set("collectionId", collectionId)
+		fmt.Print(collectionId.Value)
+	}
+
+	setWallpaper()
 
 	c.AddFunc("@midnight", setWallpaper)
 	c.Start()
@@ -105,17 +129,30 @@ func onExit() {
 }
 
 func setWallpaper() {
-	res, err := http.Get("https://source.unsplash.com/random/1920x1080")
+	collectionId := Kv{}
+	if err := store.Get("collectionId", &collectionId); err != nil {
+		print(err)
+	}
+	res, err := http.Get(fmt.Sprintf("http://localhost:8081/c/%d", collectionId.Value))
 
 	if err != nil {
-		fmt.Print("error getting image from unplash")
+		fmt.Print("error getting image from api")
 	}
 
-	wallpaper.SetFromURL(res.Request.URL.String())
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+
+	if err != nil {
+		print("malformed body")
+	}
+	wallpaper.SetFromURL(string(body))
 
 	fmt.Println("setwallpaper finished")
+}
 
-	// browser.OpenURL()
+func onCollectionChange(cId int) {
+	store.Set("collectionId", Kv{cId})
+	setWallpaper()
 }
 
 func openBrowser(url string) {
