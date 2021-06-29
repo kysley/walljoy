@@ -3,6 +3,7 @@ module github.com/kysley/walljoy
 go 1.16
 
 require (
+	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/getlantern/systray v1.1.0
