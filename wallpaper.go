@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 
 	"github.com/denisbrodbeck/machineid"
 	"github.com/getlantern/systray"
@@ -18,7 +19,7 @@ import (
 )
 
 type Kv struct {
-	Value int
+	Value string
 }
 
 var (
@@ -52,7 +53,6 @@ func getSessionId() {
 	resp, err := client.R().SetBody(map[string]interface{}{"identity": getDeviceIdentity()}).Post("http://localhost:8081/ack")
 
 	if err != nil {
-		// writeFile(string(resp.Body()))
 		fmt.Print(resp.Body())
 	}
 	var sessionData ackResponse
@@ -63,9 +63,14 @@ func getSessionId() {
 
 	fmt.Print("hello")
 
-	// sessionId := sessionData.SessionId
+	store.Set("sId", Kv{sessionData.SessionId})
+}
 
-	// openBrowser("http://localhost:8080/register?sId=" + sessionId)
+func openSession() {
+	var sessionId Kv
+
+	store.Get("sId", &sessionId)
+	openBrowser(fmt.Sprintf("http://localhost:8080/register?sId=%s", sessionId.Value))
 }
 
 func onReady() {
@@ -80,7 +85,8 @@ func onReady() {
 	systray.SetIcon(getIcon("smile_light.ico"))
 	systray.SetTitle("Walljoy")
 
-	// mReroll := systray.AddMenuItem("Shuffle Wallpaper", "Gets a new random wallpaper from Unsplash")
+	mDash := systray.AddMenuItem("Dashboard", "")
+	systray.AddSeparator()
 	systray.AddMenuItem("Current: ", "").Disable()
 	systray.AddSeparator()
 	mChan1 := systray.AddMenuItem("Earth", "")
@@ -103,6 +109,8 @@ func onReady() {
 				onCollectionChange(2)
 			case <-mChan1.ClickedCh:
 				onCollectionChange(1)
+			case <-mDash.ClickedCh:
+				openSession()
 			}
 		}
 	}()
@@ -112,7 +120,7 @@ func onReady() {
 	err := store.Get("collectionId", Kv{})
 
 	if err != nil {
-		collectionId := Kv{1}
+		collectionId := Kv{"1"}
 		store.Set("collectionId", collectionId)
 		fmt.Print(collectionId.Value)
 	}
@@ -133,7 +141,7 @@ func setWallpaper() {
 	if err := store.Get("collectionId", &collectionId); err != nil {
 		print(err)
 	}
-	res, err := http.Get(fmt.Sprintf("http://localhost:8081/c/%d", collectionId.Value))
+	res, err := http.Get(fmt.Sprintf("http://localhost:8081/c/%s", collectionId.Value))
 
 	if err != nil {
 		fmt.Print("error getting image from api")
@@ -151,7 +159,8 @@ func setWallpaper() {
 }
 
 func onCollectionChange(cId int) {
-	store.Set("collectionId", Kv{cId})
+	stringCId := strconv.Itoa(cId)
+	store.Set("collectionId", Kv{stringCId})
 	setWallpaper()
 }
 
