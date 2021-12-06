@@ -29,7 +29,7 @@ func watchOSX() {
 // react to the change
 func reactOSX(isDark bool) {
 	if isDark {
-		fmt.Println("Dark Mode ON")
+		// fmt.Println("Dark Mode ON")
 		// @todo osx icons
 		systray.SetIcon(getIcon("smile_light.ico"))
 	} else {

@@ -2,7 +2,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"syscall"
 
@@ -16,7 +15,7 @@ const (
 )
 
 func watchWindows() {
-	fmt.Println("Dark Mode on:", isDark())
+	// fmt.Println("Dark Mode on:", isDark())
 	reactWindows(isDark())
 	monitor(reactWindows)
 }
@@ -24,10 +23,10 @@ func watchWindows() {
 // react to the change
 func reactWindows(isDark bool) {
 	if isDark {
-		fmt.Println("Dark Mode ON")
+		// fmt.Println("Dark Mode ON")
 		systray.SetIcon(getIcon("smile_light.ico"))
 	} else {
-		fmt.Println("Dark Mode OFF")
+		// fmt.Println("Dark Mode OFF")
 		systray.SetIcon(getIcon("smile_dark.ico"))
 	}
 }
