@@ -1,0 +1,38 @@
+type Account {
+  devices: [Device!]!
+  email: String!
+  id: ID!
+}
+
+type Collection {
+  id: ID!
+  name: String!
+  wallpapers: [Wallpaper!]!
+}
+
+type Device {
+  activeCollectionId: Int
+  authorized: Boolean!
+  deviceId: String!
+  id: ID!
+  name: String
+}
+
+type Mutation {
+  createAccount(code: String!, deviceId: String!, email: String!, name: String!): Account!
+  register(deviceId: String!, deviceName: String!, email: String!): Account!
+  registerDevice(deviceId: String!): String!
+}
+
+type Query {
+  collection(id: ID!): Collection
+  collectionLatest(id: ID!): Wallpaper
+  hello(name: String): String
+  me: Account
+  wallpapers: [Wallpaper!]
+}
+
+type Wallpaper {
+  id: ID!
+  unsplashUrl: String
+}

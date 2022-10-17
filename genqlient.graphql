@@ -1,0 +1,9 @@
+mutation registerDevice($deviceId: String!) {
+  registerDevice(deviceId: $deviceId)
+}
+
+query collectionLatest($collectionId: ID!) {
+  collectionLatest(id:$collectionId){
+    unsplashUrl
+  }
+}

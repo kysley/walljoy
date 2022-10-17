@@ -1,11 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
@@ -33,7 +30,7 @@ func main() {
 }
 
 // [id, name, code]
-func getDeviceIdentity() string {
+func getDeviceIdentity() []string {
 	deviceName, _ := os.Hostname()
 	deviceId, err := machineid.ProtectedID("walljoy")
 
@@ -41,36 +38,16 @@ func getDeviceIdentity() string {
 		fmt.Print("Error getting device identity")
 	}
 
-	return deviceId + "," + deviceName
-}
-
-type ackResponse struct {
-	SessionId string `json:"sessionId"`
-	Code      string `json:"newCode"`
-}
-
-func getSessionId() {
-	resp, err := client.R().SetBody(map[string]interface{}{"identity": getDeviceIdentity()}).Post("http://localhost:8081/ack")
-
-	if err != nil {
-		fmt.Print(resp.Body())
-	}
-	var sessionData ackResponse
-
-	if err := json.Unmarshal(resp.Body(), &sessionData); err != nil {
-		fmt.Print("Client unmarshal failed: " + err.Error())
-	}
-
-	fmt.Print("hello")
-
-	store.Set("sId", Kv{sessionData.SessionId})
+	return []string{deviceId, deviceName}
 }
 
 func openSession() {
-	var sessionId Kv
+	var code Kv
+	identity := getDeviceIdentity()
 
-	store.Get("sId", &sessionId)
-	openBrowser(fmt.Sprintf("http://localhost:8080/register?sId=%s", sessionId.Value))
+	store.Get("code", &code)
+	fmt.Print(code)
+	openBrowser(fmt.Sprintf("http://127.0.0.1:5173/register?code=%s&deviceId=%s&name=%s", code.Value, identity[0], identity[1]))
 }
 
 func onReady() {
@@ -115,19 +92,21 @@ func onReady() {
 		}
 	}()
 
-	getSessionId()
+	code := RegisterDevice(getDeviceIdentity()[0])
+	fmt.Print(code)
+	store.Set("code", Kv{code})
 
-	err := store.Get("collectionId", Kv{})
+	setWallpaper(GetCollectionLatest("1"))
 
-	if err != nil {
-		collectionId := Kv{"1"}
-		store.Set("collectionId", collectionId)
-		fmt.Print(collectionId.Value)
-	}
+	// if err != nil {
+	// 	collectionId := Kv{"1"}
+	// 	store.Set("collectionId", collectionId)
+	// 	fmt.Print(collectionId.Value)
+	// }
 
-	setWallpaper()
+	// setWallpaper()
 
-	c.AddFunc("@midnight", setWallpaper)
+	// c.AddFunc("@midnight", setWallpaper)
 	c.Start()
 }
 
@@ -136,24 +115,13 @@ func onExit() {
 	c.Stop()
 }
 
-func setWallpaper() {
-	collectionId := Kv{}
-	if err := store.Get("collectionId", &collectionId); err != nil {
-		print(err)
-	}
-	res, err := http.Get(fmt.Sprintf("http://localhost:8081/c/%s", collectionId.Value))
+func setWallpaper(url string) {
+	// collectionId := Kv{}
+	// if err := store.Get("collectionId", &collectionId); err != nil {
+	// 	print(err)
+	// }
 
-	if err != nil {
-		fmt.Print("error getting image from api")
-	}
-
-	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
-
-	if err != nil {
-		print("malformed body")
-	}
-	wallpaper.SetFromURL(string(body))
+	wallpaper.SetFromURL(url)
 
 	fmt.Println("setwallpaper finished")
 }
@@ -161,7 +129,7 @@ func setWallpaper() {
 func onCollectionChange(cId int) {
 	stringCId := strconv.Itoa(cId)
 	store.Set("collectionId", Kv{stringCId})
-	setWallpaper()
+	// setWallpaper()
 }
 
 func openBrowser(url string) {
